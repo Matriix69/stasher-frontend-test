@@ -1,0 +1,50 @@
+.modal {
+    background: rgba(0, 0, 0, 0.3);
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    z-index: 33;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.5s;
+}
+.modal_content {
+    background-color: #fff;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 6px;
+}
+.modal_message {
+    text-align: center;
+    padding: 10px;
+    border-bottom: 1px solid #dddfe0;
+}
+.modal_message p {
+    margin: 0;
+}
+.modal_action {
+    width: 100%;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+.modal_action:hover {
+    background: hsl(0, 0%, 97%);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

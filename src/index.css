@@ -1,3 +1,33 @@
 body {
-  padding: 1rem;
+    padding: 1rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+h1 {
+    margin: 0;
+    color: #0370e6;
+}
+main {
+    margin-bottom: 70px;
+}
+p {
+    margin: 0;
+}
+
+.spinner {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    border-right-color: #0370e6;
+    animation: spin 0.5s linear infinite;
+    margin-left: 5px;
+    /* margin: 50px; */
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
