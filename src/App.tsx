@@ -1,8 +1,7 @@
 import { useEffect, useState, useReducer } from 'react'
-import { addDays, startOfDay, format, isBefore } from 'date-fns'
+import { addDays, startOfDay, format, isBefore, isEqual } from 'date-fns'
 import * as Data from './Data'
-import { isDateRangeValid, isBagCountValid } from './util'
-import { sortBy, formatToCurrency, ACTIONS, regex } from './contants'
+import { isDateRangeValid, isBagCountValid, sortBy, formatToCurrency, ACTIONS, regex, sortValues } from './util'
 import { FetchAllStashpoints, fetchPriceQoute, postBooking, postPayment } from './urlcruds'
 import styles from './styles.module.css'
 import Loader from './componets/Loader'
@@ -83,13 +82,23 @@ export const App = (_props: AppProps) => {
             ...cart.dateRange,
             ...(name === 'from'
                 ? {
-                      from: startOfDay(new Date(value)),
-                      //if dataRange.from not before dateRange.to, change dateRange.to to new date value of from and add one day to it
+                      //make sure the value of from is not before the initial dateRange.from value (validation without the minDate attribute on the input)
+                      from: isBefore(startOfDay(new Date(value)), getInitialDraftCart().dateRange.from)
+                          ? getInitialDraftCart().dateRange.from
+                          : startOfDay(new Date(value)),
+                      //if dataRange.from not before dateRange.to, change dateRange.to to new date value of from and add one day
                       ...(isBefore(startOfDay(new Date(value)), cart.dateRange.to)
                           ? null
                           : { to: addDays(startOfDay(new Date(value)), 1) }),
                   }
-                : { to: startOfDay(new Date(value)) }),
+                : {
+                      to:
+                          //make sure date is not before or equal to dateRange.from (validations without the minDate attribute on the input)
+                          isBefore(startOfDay(new Date(value)), cart.dateRange.from) ||
+                          isEqual(startOfDay(new Date(value)), cart.dateRange.from)
+                              ? addDays(cart.dateRange.from, 1)
+                              : startOfDay(new Date(value)),
+                  }),
         }
 
         setCart({
@@ -128,7 +137,7 @@ export const App = (_props: AppProps) => {
             const response = await fetchPriceQoute(cart)
             const [error, data] = Data.PriceQuote.decode(await response.json())
             if (error) {
-                setErrorMsg('Something went wrong get price qoute')
+                setErrorMsg('Something went wrong getting price qoute')
             } else {
                 setPriceQuote(data)
                 setIsFatchingPriceQuote(false)
@@ -174,20 +183,22 @@ export const App = (_props: AppProps) => {
                 <div className={styles.header_bar_content}>
                     <div className={styles.group_elements_date}>
                         <div className={styles.input_conatainer}>
-                            <label>From</label>
+                            <label htmlFor='from'>From</label>
                             <input
                                 type='date'
                                 name='from'
+                                id='from'
                                 value={formatInputValueProp('from')}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChangeforCartDate(e)}
                                 min={format(getInitialDraftCart().dateRange.from, 'yyyy-MM-dd')}
                             />
                         </div>
                         <div className={styles.input_conatainer}>
-                            <label>To</label>
+                            <label htmlFor='to'>To</label>
                             <input
                                 type='date'
                                 name='to'
+                                id='to'
                                 value={formatInputValueProp('to')}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChangeforCartDate(e)}
                                 min={format(addDays(cart.dateRange.from, 1), 'yyyy-MM-dd')}
@@ -196,9 +207,9 @@ export const App = (_props: AppProps) => {
                     </div>
 
                     <div className={styles.input_conatainer}>
-                        <label>Bags</label>
-
+                        <label htmlFor='bagCount'>Bags</label>
                         <input
+                            id='bagCount'
                             type='number'
                             name='bagCount'
                             value={cart.bagCount}
@@ -218,16 +229,17 @@ export const App = (_props: AppProps) => {
             <div className={styles.bottom_bar}>
                 <div className={styles.bottom_bar_content}>
                     <div className={styles.input_conatainer}>
-                        <label>sortby</label>
+                        <label htmlFor='sortby-select'>sortby</label>
                         <select
+                            id='sortby-select'
                             className='select-item'
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => sortStashpoint(e)}
                             value={selectSortBy}
                             disabled={!allStashpoints.length}
                         >
-                            <option>Default</option>
-                            <option>Rating</option>
-                            <option>Bag Per Day Price</option>
+                            {sortValues.map((value: string, index: number) => (
+                                <option key={index}>{value}</option>
+                            ))}
                         </select>
                     </div>
                     <div className={styles.group_elements}>
@@ -237,9 +249,10 @@ export const App = (_props: AppProps) => {
                                 (priceQuote?.totalPrice
                                     ? formatToCurrency(priceQuote?.currencyCode, priceQuote?.totalPrice)
                                     : formatToCurrency('GBP', 0))}
-                            {isFatchingPriceQuote ? <Loader /> : ''}
+                            {isFatchingPriceQuote && <Loader />}
                         </span>
                         <button
+                            name='book'
                             className={styles.button}
                             disabled={!priceQuote?.totalPrice || isCreatingBooking ? true : false}
                             onClick={() => creatBooking()}
