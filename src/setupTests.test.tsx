@@ -10,8 +10,6 @@ import { setupServer } from 'msw/node'
 import { render, fireEvent, screen, waitForElementToBeRemoved, waitFor } from '@testing-library/react'
 import { App } from './App'
 
-// import 'whatwg-fetch'
-
 const fakeData = [
     {
         address: '61602 Lindsey Lock Apt. 565',

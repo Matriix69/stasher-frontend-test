@@ -56,13 +56,19 @@ export const App = (_props: AppProps) => {
 
     useEffect(() => {
         const getAllStashpoints = async () => {
-            const response = await FetchAllStashpoints()
-            const [error, stashpoints] = Data.Stashpoints.decode(await response.json())
-            if (error) {
+            try {
+                const response = await FetchAllStashpoints()
+                const [error, stashpoints] = Data.Stashpoints.decode(await response.json())
+                if (error) {
+                    setErrorMsg('Something wrong fetching stash points')
+                    setIsFatchingStashPoints(false)
+                } else {
+                    setAllStashpoints(stashpoints)
+                    dispatch({ type: ACTIONS.SET_STASHPOINT, payload: stashpoints })
+                    setIsFatchingStashPoints(false)
+                }
+            } catch (error) {
                 setErrorMsg('Something wrong fetching stash points')
-            } else {
-                setAllStashpoints(stashpoints)
-                dispatch({ type: ACTIONS.SET_STASHPOINT, payload: stashpoints })
                 setIsFatchingStashPoints(false)
             }
         }
@@ -134,12 +140,18 @@ export const App = (_props: AppProps) => {
             if (!isCartValid()) return
 
             setIsFatchingPriceQuote(true)
-            const response = await fetchPriceQoute(cart)
-            const [error, data] = Data.PriceQuote.decode(await response.json())
-            if (error) {
+
+            try {
+                const response = await fetchPriceQoute(cart)
+                const [error, data] = Data.PriceQuote.decode(await response.json())
+                if (error) {
+                    setErrorMsg('Something went wrong getting price qoute')
+                } else {
+                    setPriceQuote(data)
+                    setIsFatchingPriceQuote(false)
+                }
+            } catch (error) {
                 setErrorMsg('Something went wrong getting price qoute')
-            } else {
-                setPriceQuote(data)
                 setIsFatchingPriceQuote(false)
             }
         }
@@ -150,20 +162,25 @@ export const App = (_props: AppProps) => {
         if (!isCartValid()) return
         setIsCreatingBooking(true)
 
-        const response = await postBooking(cart)
-        const [error, data] = Data.Booking.decode(await response.json())
+        try {
+            const response = await postBooking(cart)
+            const [error, data] = Data.Booking.decode(await response.json())
 
-        if (error) {
-            return setErrorMsg('Something went wrong booking stash point')
-        }
-        const response2 = await postPayment({ bookingId: data.id })
-        const [error2, data2] = Data.Payment.decode(await response2.json())
-        if (error2) {
+            if (error) {
+                return setErrorMsg('Something went wrong booking stash point')
+            }
+            const response2 = await postPayment({ bookingId: data.id })
+            const [error2, data2] = Data.Payment.decode(await response2.json())
+            if (error2) {
+                setErrorMsg('Something went wrong booking stash point')
+            } else {
+                setBookingID(data.id)
+                setIsCreatingBooking(false)
+                setShowModal(true)
+            }
+        } catch (error) {
             setErrorMsg('Something went wrong booking stash point')
-        } else {
-            setBookingID(data.id)
             setIsCreatingBooking(false)
-            setShowModal(true)
         }
     }
 
