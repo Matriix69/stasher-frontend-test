@@ -9,6 +9,7 @@ import { setupServer } from 'msw/node'
 // import { server } from './mocks/server'
 import { render, fireEvent, screen, waitForElementToBeRemoved, waitFor } from '@testing-library/react'
 import { App } from './App'
+import { addDays, format, startOfDay } from 'date-fns'
 
 const fakeData = [
     {
@@ -66,21 +67,29 @@ describe('integration test', () => {
             }),
         ).toBeInTheDocument()
         expect(screen.getByLabelText(/sortby/i)).toBeInTheDocument()
-        expect(screen.getByText(/price: £0\.00/i)).toBeInTheDocument()
+        // expect(screen.getByText(/price: £0\.00/i)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /book/i })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /book/i })).toBeDisabled()
         expect(screen.getByText(/loading stash points\.\.\./i)).toBeInTheDocument()
 
+        expect(screen.getByLabelText(/from/i)).toHaveValue(format(addDays(startOfDay(new Date()), 1), 'yyyy-MM-dd'))
+
         fireEvent.change(screen.getByLabelText(/from/i), {
-            target: { value: '2022-04-18' },
+            target: { value: '2023-04-18' },
         })
 
-        expect(screen.getByLabelText(/from/i)).toHaveValue('2022-04-18')
-        expect(screen.getByLabelText(/to/i)).toHaveValue('2022-04-19')
+        expect(screen.getByLabelText(/from/i)).toHaveValue('2023-04-18')
+        expect(screen.getByLabelText(/to/i)).toHaveValue('2023-04-19')
         fireEvent.change(screen.getByLabelText(/to/i), {
-            target: { value: '2022-03-11' },
+            target: { value: '2023-03-11' },
         })
-        expect(screen.getByLabelText(/to/i)).toHaveValue('2022-04-19')
+        expect(screen.getByLabelText(/to/i)).toHaveValue('2023-04-19')
+
+        expect(
+            screen.getByRole('spinbutton', {
+                name: /bags/i,
+            }),
+        ).toHaveValue(1)
 
         fireEvent.change(
             screen.getByRole('spinbutton', {

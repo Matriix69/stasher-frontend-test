@@ -25,6 +25,9 @@
     padding: 10px;
     border-bottom: 1px solid #dddfe0;
 }
+.modal_message_error {
+    color: red;
+}
 .modal_message p {
     margin: 0;
 }

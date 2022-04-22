@@ -1,11 +1,14 @@
 import { useEffect, useState, useReducer } from 'react'
 import { addDays, startOfDay, format, isBefore, isEqual } from 'date-fns'
 import * as Data from './Data'
-import { isDateRangeValid, isBagCountValid, sortBy, formatToCurrency, ACTIONS, regex, sortValues } from './util'
+import { isDateRangeValid, isBagCountValid, sortBy, ACTIONS, regex } from './util'
 import { FetchAllStashpoints, fetchPriceQoute, postBooking, postPayment } from './urlcruds'
 import styles from './styles.module.css'
-import Loader from './componets/Loader'
-import Modal from './componets/Modal/Modal'
+import SuccessModal from './componets/Modal/SuccessModal'
+import StashPoints from './componets/stashPoints/StashPoints'
+import Header from './componets/header/Header'
+import PriceBookBottomBar from './componets/priceBookBottomBar/PriceBookBottomBar'
+import ErrorModal from './componets/Modal/ErrorModal'
 
 export type AppProps = {
     readonly children?: never
@@ -75,11 +78,6 @@ export const App = (_props: AppProps) => {
         getAllStashpoints()
     }, [])
 
-    const selectStashPoint = (id: string): void => {
-        if (id === cart.stashpointId) return
-        setCart({ ...cart, stashpointId: id })
-    }
-
     //date onChange function
     const handleInputChangeforCartDate = (e: React.ChangeEvent<HTMLInputElement>): void => {
         const { name, value } = e.target
@@ -126,6 +124,18 @@ export const App = (_props: AppProps) => {
 
     const formatInputValueProp = (value: string): string => {
         return format(new Date(cart.dateRange[value as keyof Data.DateRange]), 'yyyy-MM-dd')
+    }
+
+    const selectStashPoint = (id: string): void => {
+        if (id === cart.stashpointId) return
+        setCart({ ...cart, stashpointId: id })
+    }
+
+    const sortStashpoint = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const { value } = e.target
+        setSelectSortBy(value)
+        if (value === ACTIONS.DEFAULT) return dispatch({ type: value, payload: allStashpoints })
+        dispatch({ type: value })
     }
 
     const isCartValid = (): boolean => {
@@ -184,133 +194,35 @@ export const App = (_props: AppProps) => {
         }
     }
 
-    const sortStashpoint = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { value } = e.target
-        setSelectSortBy(value)
-        if (value === ACTIONS.DEFAULT) return dispatch({ type: value, payload: allStashpoints })
-        dispatch({ type: value })
-    }
-
     return (
-        <div>
-            <header>
-                <h1>Stasher</h1>
-            </header>
-            <div className={styles.header_bar}>
-                <div className={styles.header_bar_content}>
-                    <div className={styles.group_elements_date}>
-                        <div className={styles.input_conatainer}>
-                            <label htmlFor='from'>From</label>
-                            <input
-                                type='date'
-                                name='from'
-                                id='from'
-                                value={formatInputValueProp('from')}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChangeforCartDate(e)}
-                                min={format(getInitialDraftCart().dateRange.from, 'yyyy-MM-dd')}
-                            />
-                        </div>
-                        <div className={styles.input_conatainer}>
-                            <label htmlFor='to'>To</label>
-                            <input
-                                type='date'
-                                name='to'
-                                id='to'
-                                value={formatInputValueProp('to')}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChangeforCartDate(e)}
-                                min={format(addDays(cart.dateRange.from, 1), 'yyyy-MM-dd')}
-                            />
-                        </div>
-                    </div>
+        <>
+            <Header
+                formatInputValueProp={formatInputValueProp}
+                handleInputChangeforCartDate={handleInputChangeforCartDate}
+                handleInputChangeforBegCount={handleInputChangeforBegCount}
+                cart={cart}
+            />
 
-                    <div className={styles.input_conatainer}>
-                        <label htmlFor='bagCount'>Bags</label>
-                        <input
-                            id='bagCount'
-                            type='number'
-                            name='bagCount'
-                            value={cart.bagCount}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChangeforBegCount(e)}
-                        />
-                    </div>
-                </div>
-
-                {errorMsg && (
-                    <div className={styles.error}>
-                        <p>{errorMsg}</p>
-                        <button onClick={() => setErrorMsg('')}>&#x2715;</button>
-                    </div>
-                )}
-            </div>
-
-            <div className={styles.bottom_bar}>
-                <div className={styles.bottom_bar_content}>
-                    <div className={styles.input_conatainer}>
-                        <label htmlFor='sortby-select'>sortby</label>
-                        <select
-                            id='sortby-select'
-                            className='select-item'
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => sortStashpoint(e)}
-                            value={selectSortBy}
-                            disabled={!allStashpoints.length}
-                        >
-                            {sortValues.map((value: string, index: number) => (
-                                <option key={index}>{value}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className={styles.group_elements}>
-                        <span className={styles.price}>
-                            price:{' '}
-                            {!isFatchingPriceQuote &&
-                                (priceQuote?.totalPrice
-                                    ? formatToCurrency(priceQuote?.currencyCode, priceQuote?.totalPrice)
-                                    : formatToCurrency('GBP', 0))}
-                            {isFatchingPriceQuote && <Loader />}
-                        </span>
-                        <button
-                            name='book'
-                            className={styles.button}
-                            disabled={!priceQuote?.totalPrice || isCreatingBooking ? true : false}
-                            onClick={() => creatBooking()}
-                        >
-                            {isCreatingBooking && <Loader />}
-                            {!isCreatingBooking && 'Book'}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <PriceBookBottomBar
+                sortStashpoint={sortStashpoint}
+                selectSortBy={selectSortBy}
+                isFatchingPriceQuote={isFatchingPriceQuote}
+                priceQuote={priceQuote}
+                isCreatingBooking={isCreatingBooking}
+                creatBooking={creatBooking}
+                disableSelect={!allStashpoints.length ? true : false}
+            />
 
             <main className={styles.stashCard_container}>
                 {isFatchingStashPoints && <p>Loading stash points...</p>}
-                {!isFatchingStashPoints &&
-                    state?.map((stashpoint: Data.Stashpoint, index: number) => (
-                        <div
-                            className={`${styles.stashCard} ${
-                                cart.stashpointId === stashpoint.id ? styles.selectedStashPoint : ``
-                            }`}
-                            key={index}
-                            onClick={() => selectStashPoint(stashpoint.id)}
-                        >
-                            <div>
-                                <strong>{stashpoint.name}</strong>
-                            </div>
-                            <div>
-                                Address: <strong>{stashpoint.address}</strong>
-                            </div>
-                            <div>
-                                Rating: <strong>{stashpoint.rating}</strong>
-                            </div>
-                            <div>
-                                Pice Per Bag:{' '}
-                                <strong>
-                                    {formatToCurrency(stashpoint?.currencyCode, stashpoint?.bagPerDayPrice)}
-                                </strong>
-                            </div>
-                        </div>
-                    ))}
+
+                {!isFatchingStashPoints && (
+                    <StashPoints state={state} stashpointID={cart.stashpointId} selectStashPoint={selectStashPoint} />
+                )}
             </main>
-            {showModal && <Modal setShowModal={setShowModal} id={bookingID} />}
-        </div>
+
+            {showModal && <SuccessModal setShowModal={setShowModal} id={bookingID} />}
+            {errorMsg && <ErrorModal setErrorMsg={setErrorMsg} errorMsg={errorMsg} />}
+        </>
     )
 }

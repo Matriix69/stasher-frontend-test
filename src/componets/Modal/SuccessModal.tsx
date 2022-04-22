@@ -4,7 +4,7 @@ interface ModalProps {
     setShowModal: (value: boolean) => void
     id: string
 }
-const Modal = ({ setShowModal, id }: ModalProps) => {
+const SuccessModal = ({ setShowModal, id }: ModalProps) => {
     return (
         <div className={styles.modal}>
             <div className={styles.modal_content}>
@@ -20,4 +20,4 @@ const Modal = ({ setShowModal, id }: ModalProps) => {
     )
 }
 
-export default Modal
+export default SuccessModal
