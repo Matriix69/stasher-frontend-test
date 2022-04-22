@@ -3,36 +3,36 @@ import styles from '../../styles.module.css'
 import { formatToCurrency } from '../../util'
 
 interface props {
-    state: Data.Stashpoint[]
-    selectStashPoint: (id: string) => void
-    stashpointID: string
+    stashPoint: Data.Stashpoint
+    cart: Data.Cart
+    setCart: (value: Data.Cart) => void
 }
 
-const StashPoints = ({ state, selectStashPoint, stashpointID }: props) => {
+const StashPoints = ({ stashPoint, cart, setCart }: props) => {
+    const selectStashPoint = (id: string): void => {
+        if (id === cart.stashpointId) return
+        setCart({ ...cart, stashpointId: id })
+    }
+
     return (
-        <>
-            {state?.map((stashpoint: Data.Stashpoint, index: number) => (
-                <div
-                    className={`${styles.stashCard} ${stashpointID === stashpoint.id ? styles.selectedStashPoint : ``}`}
-                    key={index}
-                    onClick={() => selectStashPoint(stashpoint.id)}
-                >
-                    <div>
-                        <strong>{stashpoint.name}</strong>
-                    </div>
-                    <div>
-                        Address: <strong>{stashpoint.address}</strong>
-                    </div>
-                    <div>
-                        Rating: <strong>{stashpoint.rating}</strong>
-                    </div>
-                    <div>
-                        Pice Per Bag:
-                        <strong>{formatToCurrency(stashpoint?.currencyCode, stashpoint?.bagPerDayPrice)}</strong>
-                    </div>
-                </div>
-            ))}
-        </>
+        <div
+            className={`${styles.stashCard} ${cart.stashpointId === stashPoint.id ? styles.selectedStashPoint : ``}`}
+            onClick={() => selectStashPoint(stashPoint.id)}
+        >
+            <div>
+                <strong>{stashPoint.name}</strong>
+            </div>
+            <div>
+                Address: <strong>{stashPoint.address}</strong>
+            </div>
+            <div>
+                Rating: <strong>{stashPoint.rating}</strong>
+            </div>
+            <div>
+                Pice Per Bag:
+                <strong>{formatToCurrency(stashPoint?.currencyCode, stashPoint?.bagPerDayPrice)}</strong>
+            </div>
+        </div>
     )
 }
 

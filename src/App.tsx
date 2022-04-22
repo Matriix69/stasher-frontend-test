@@ -1,7 +1,7 @@
 import { useEffect, useState, useReducer } from 'react'
-import { addDays, startOfDay, format, isBefore, isEqual } from 'date-fns'
+import { addDays, startOfDay } from 'date-fns'
 import * as Data from './Data'
-import { isDateRangeValid, isBagCountValid, sortBy, ACTIONS, regex } from './util'
+import { isDateRangeValid, isBagCountValid, sortBy, ACTIONS } from './util'
 import { FetchAllStashpoints, fetchPriceQoute, postBooking, postPayment } from './urlcruds'
 import styles from './styles.module.css'
 import SuccessModal from './componets/Modal/SuccessModal'
@@ -12,6 +12,19 @@ import ErrorModal from './componets/Modal/ErrorModal'
 
 export type AppProps = {
     readonly children?: never
+}
+
+export const getInitialDraftCart = (): Data.Cart => {
+    const initialDateFrom = addDays(startOfDay(new Date()), 1)
+
+    return {
+        bagCount: 1,
+        dateRange: {
+            from: initialDateFrom,
+            to: addDays(initialDateFrom, 1),
+        },
+        stashpointId: '',
+    }
 }
 
 const initialState: Data.Stashpoint[] = []
@@ -30,19 +43,6 @@ function reducer(state: Data.Stashpoint[], action: any) {
 }
 
 export const App = (_props: AppProps) => {
-    const getInitialDraftCart = (): Data.Cart => {
-        const initialDateFrom = addDays(startOfDay(new Date()), 1)
-
-        return {
-            bagCount: 1,
-            dateRange: {
-                from: initialDateFrom,
-                to: addDays(initialDateFrom, 1),
-            },
-            stashpointId: '',
-        }
-    }
-
     const [allStashpoints, setAllStashpoints] = useState<Data.Stashpoints>([])
     const [cart, setCart] = useState<Data.Cart>(getInitialDraftCart())
     const [priceQuote, setPriceQuote] = useState<Data.PriceQuote>()
@@ -77,66 +77,6 @@ export const App = (_props: AppProps) => {
         }
         getAllStashpoints()
     }, [])
-
-    //date onChange function
-    const handleInputChangeforCartDate = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        const { name, value } = e.target
-
-        const dateObj: Data.DateRange = {
-            ...cart.dateRange,
-            ...(name === 'from'
-                ? {
-                      //make sure the value of from is not before the initial dateRange.from value (validation without the minDate attribute on the input)
-                      from: isBefore(startOfDay(new Date(value)), getInitialDraftCart().dateRange.from)
-                          ? getInitialDraftCart().dateRange.from
-                          : startOfDay(new Date(value)),
-                      //if dataRange.from not before dateRange.to, change dateRange.to to new date value of from and add one day
-                      ...(isBefore(startOfDay(new Date(value)), cart.dateRange.to)
-                          ? null
-                          : { to: addDays(startOfDay(new Date(value)), 1) }),
-                  }
-                : {
-                      to:
-                          //make sure date is not before or equal to dateRange.from (validations without the minDate attribute on the input)
-                          isBefore(startOfDay(new Date(value)), cart.dateRange.from) ||
-                          isEqual(startOfDay(new Date(value)), cart.dateRange.from)
-                              ? addDays(cart.dateRange.from, 1)
-                              : startOfDay(new Date(value)),
-                  }),
-        }
-
-        setCart({
-            ...cart,
-            dateRange: { ...dateObj },
-        })
-    }
-
-    const handleInputChangeforBegCount = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        const { name, value } = e.target
-
-        if (value === '' || (regex.test(value) && isBagCountValid(Number(value)))) {
-            setCart({
-                ...cart,
-                [name]: value !== '' ? Number(value) : '',
-            })
-        }
-    }
-
-    const formatInputValueProp = (value: string): string => {
-        return format(new Date(cart.dateRange[value as keyof Data.DateRange]), 'yyyy-MM-dd')
-    }
-
-    const selectStashPoint = (id: string): void => {
-        if (id === cart.stashpointId) return
-        setCart({ ...cart, stashpointId: id })
-    }
-
-    const sortStashpoint = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { value } = e.target
-        setSelectSortBy(value)
-        if (value === ACTIONS.DEFAULT) return dispatch({ type: value, payload: allStashpoints })
-        dispatch({ type: value })
-    }
 
     const isCartValid = (): boolean => {
         if (!isBagCountValid(cart.bagCount)) return false
@@ -194,14 +134,16 @@ export const App = (_props: AppProps) => {
         }
     }
 
+    const sortStashpoint = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const { value } = e.target
+        setSelectSortBy(value)
+        if (value === ACTIONS.DEFAULT) return dispatch({ type: value, payload: allStashpoints })
+        dispatch({ type: value })
+    }
+
     return (
         <>
-            <Header
-                formatInputValueProp={formatInputValueProp}
-                handleInputChangeforCartDate={handleInputChangeforCartDate}
-                handleInputChangeforBegCount={handleInputChangeforBegCount}
-                cart={cart}
-            />
+            <Header cart={cart} setCart={setCart} />
 
             <PriceBookBottomBar
                 sortStashpoint={sortStashpoint}
@@ -216,9 +158,10 @@ export const App = (_props: AppProps) => {
             <main className={styles.stashCard_container}>
                 {isFatchingStashPoints && <p>Loading stash points...</p>}
 
-                {!isFatchingStashPoints && (
-                    <StashPoints state={state} stashpointID={cart.stashpointId} selectStashPoint={selectStashPoint} />
-                )}
+                {!isFatchingStashPoints &&
+                    state?.map((stashPoint: Data.Stashpoint, index: number) => (
+                        <StashPoints stashPoint={stashPoint} cart={cart} setCart={setCart} />
+                    ))}
             </main>
 
             {showModal && <SuccessModal setShowModal={setShowModal} id={bookingID} />}
